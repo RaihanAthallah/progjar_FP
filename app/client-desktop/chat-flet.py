@@ -1,11 +1,12 @@
 from chatcli import *
-
+import os
+import json
 
 import flet as ft
 
 
-TARGET_IP = "GANTI IP MU"
-TARGET_PORT = "55555"
+TARGET_IP = os.getenv("SERVER_IP") or "192.168.1.68"
+TARGET_PORT = os.getenv("SERVER_PORT") or "55555"
 ON_WEB = os.getenv("ONWEB") or "0"
 
 

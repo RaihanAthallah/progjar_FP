@@ -40,7 +40,7 @@ class Server(threading.Thread):
 		threading.Thread.__init__(self)
 
 	def run(self):
-		self.my_socket.bind(('GANTI IP MU',55555))
+		self.my_socket.bind(('192.168.1.68',55555))
 		self.my_socket.listen(1)
 		while True:
 			self.connection, self.client_address = self.my_socket.accept()
