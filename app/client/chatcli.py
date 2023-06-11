@@ -21,50 +21,58 @@ class ChatClient:
                 username=j[1].strip()
                 password=j[2].strip()
                 return self.login(username,password)
-            elif (command=='addrealm'):
-                realmid = j[1].strip()
+            
+            elif (command=='addrealmconnect'):
+                realm_ID = j[1].strip()
                 realm_address = j[2].strip()
                 realm_port = j[3].strip()
-                return self.add_realm(realmid, realm_address, realm_port)
+                return self.add_realm_connect(realm_ID, realm_address, realm_port)
+            
             elif (command=='send'):
                 usernameto = j[1].strip()
                 message=""
                 for w in j[2:]:
                     message="{} {}" . format(message,w)
                 return self.send_message(usernameto,message)
+            
             elif (command=='sendgroup'):
                 usernamesto = j[1].strip()
                 message=""
                 for w in j[2:]:
                     message="{} {}" . format(message,w)
                 return self.send_group_message(usernamesto,message)
-            elif (command == 'sendprivaterealm'):
-                realmid = j[1].strip()
+            
+            elif (command == 'sendrealm'):
+                realm_ID = j[1].strip()
                 username_to = j[2].strip()
                 message = ""
                 for w in j[3:]:
                     message = "{} {}".format(message, w)
-                return self.send_realm_message(realmid, username_to, message)
+                return self.send_realm_message(realm_ID, username_to, message)
+            
             elif (command=='sendgrouprealm'):
-                realmid = j[1].strip()
+                realm_ID = j[1].strip()
                 usernamesto = j[2].strip()
                 message=""
                 for w in j[3:]:
                     message="{} {}" . format(message,w)
-                return self.send_group_realm_message(realmid, usernamesto,message)
+                return self.send_group_realm_message(realm_ID, usernamesto,message)
+            
             elif command == 'sendfile':
                 file_path = j[1].strip()
                 self._send_file(file_path)
                 return
+            
             elif (command=='inbox'):
                 return self.inbox()
-            elif (command == 'getrealminbox'):
-                realmid = j[1].strip()
-                return self.realm_inbox(realmid)
+            
+            elif (command == 'inboxrealm'):
+                realm_ID = j[1].strip()
+                return self.inbox_realm(realm_ID)
             else:
-                return "*Sorry, Incorrect Command !"
+                return "*Sorry, Incorrect command"
         except IndexError:
-            return "-Sorry, Incorrect Command !"
+            return "-Sorry, Incorrect command"
 
     def sendstring(self,string):
         try:
@@ -80,7 +88,7 @@ class ChatClient:
                         return json.loads(receivemsg)
         except:
             self.sock.close()
-            return { 'status' : 'ERROR', 'message' : 'Gagal'}
+            return { 'status' : 'ERROR', 'message' : 'Failed'}
 
     def login(self,username,password):
         string="auth {} {} \r\n" . format(username,password)
@@ -91,35 +99,35 @@ class ChatClient:
         else:
             return "Error, {}" . format(result['message'])
 
-    def add_realm(self, realmid, realm_address, realm_port):
+    def add_realm_connect(self, realm_ID, realm_address, realm_port):
         if (self.tokenid==""):
-            return "Error, Unauthorized"
-        string="addrealm {} {} {} \r\n" . format(realmid, realm_address, realm_port)
+            return "Error, Unauthorized Please Login First"
+        string="addrealm {} {} {} \r\n" . format(realm_ID, realm_address, realm_port)
         result = self.sendstring(string)
         if result['status']=='OK':
-            return "Realm {} added" . format(realmid)
+            return "Realm {} added" . format(realm_ID)
         else:
             return "Error, {}" . format(result['message'])
 
     def send_message(self,usernameto="xxx",message="xxx"):
         if (self.tokenid==""):
-            return "Error, Unauthorized"
+            return "Error, Unauthorized Please Login First"
         string="send {} {} {} \r\n" . format(self.tokenid,usernameto,message)
         print(string)
         result = self.sendstring(string)
         if result['status']=='OK':
-            return "message sent to {}" . format(usernameto)
+            return "sent to {}" . format(usernameto)
         else:
             return "Error, {}" . format(result['message'])
 
-    def send_group_message(self,usernames_to="xxx",message="xxx"):
+    def send_group_message(self,usernames="xxx",message="xxx"):
         if (self.tokenid==""):
-            return "Error, Unauthorized"
-        string="sendgroup {} {} {} \r\n" . format(self.tokenid,usernames_to,message)
+            return "Error, Unauthorized Please Login First "
+        string="sendgroup {} {} {} \r\n" . format(self.tokenid,usernames,message)
         print(string)
         result = self.sendstring(string)
         if result['status']=='OK':
-            return "message sent to {}" . format(usernames_to)
+            return "sent to {}" . format(usernames)
         else:
             return "Error, {}" . format(result['message'])
 
@@ -148,7 +156,7 @@ class ChatClient:
         
     def inbox(self):
         if (self.tokenid==""):
-           return "Error, Unauthorized"
+           return "Error, Unauthorized Please Login First"
         string="inbox {} \r\n" . format(self.tokenid)
         result = self.sendstring(string)
         if result['status']=='OK':
@@ -156,36 +164,35 @@ class ChatClient:
         else:
             return "Error, {}" . format(result['message'])
 
-    def send_realm_message(self, realmid, username_to, message):
+    def send_realm_message(self, realm_ID, username_to, message):
         if (self.tokenid==""):
-            return "Error, Unauthorized"
-        string="sendprivaterealm {} {} {} {}\r\n" . format(self.tokenid, realmid, username_to, message)
+            return "Error, Unauthorized Please Login First"
+        string="sendrealm {} {} {} {}\r\n" . format(self.tokenid, realm_ID, username_to, message)
         result = self.sendstring(string)
         if result['status']=='OK':
-            return "Message sent to realm {}".format(realmid)
+            return "sent to realm {}".format(realm_ID)
         else:
             return "Error, {}".format(result['message'])
         
-    def send_group_realm_message(self, realmid, usernames_to, message):
+    def send_group_realm_message(self, realm_ID, usernames, message):
         if self.tokenid=="":
-            return "Error, Unauthorized"
-        string="sendgrouprealm {} {} {} {} \r\n" . format(self.tokenid, realmid, usernames_to, message)
-        print(string)
+            return "Error, Unauthorized Please Login First"
+        string="sendgrouprealm {} {} {} {} \r\n" . format(self.tokenid, realm_ID, usernames, message)
         result = self.sendstring(string)
         if result['status']=='OK':
-            return "message sent to group {} in realm {}" .format(usernames_to, realmid)
+            return "sent to group {} in realm {}" .format(usernames, realm_ID)
         else:
             return "Error {}".format(result['message'])
 
-    def realm_inbox(self, realmid):
+    def inbox_realm(self, realm_ID):
         if (self.tokenid==""):
-            return "Error, Unauthorized"
-        string="getrealminbox {} {} \r\n" . format(self.tokenid, realmid)
+            return "Error, Unauthorized Please Login First"
+        string="inboxrealm {} {} \r\n" . format(self.tokenid, realm_ID)
         print("Sending: " + string)
         result = self.sendstring(string)
         print("Received: " + str(result))
         if result['status']=='OK':
-            return "Message received from realm {}: {}".format(realmid, result['messages'])
+            return "received from realm {}: {}".format(realm_ID, result['messages'])
         else:
             return "Error, {}".format(result['message'])
 

@@ -4,8 +4,8 @@ from chatcli import *
 import flet as ft
 
 
-TARGET_IP = "192.168.1.68"
-TARGET_PORT = "55555"
+TARGET_IP = os.getenv("SERVER_IP") or "127.0.0"
+TARGET_PORT = os.getenv("SERVER_PORT") or "8889"
 ON_WEB = os.getenv("ONWEB") or "0"
 
 
@@ -22,24 +22,14 @@ def main(page):
             cmd.value=""
             page.update()
 
-    def btn_inbox(e):
-            txt = "inbox"
-            lv.controls.append(ft.Text(f"command: {txt}"))
-            txt = cc.proses(txt)
-            lv.controls.append(ft.Text(f"result {cc.tokenid}: {txt}"))
-            cmd.value=""
-            page.update()
-    
     cc = ChatClient()
 
 
     lv = ft.ListView(expand=1, spacing=10, padding=20, auto_scroll=True)
-    cmd = ft.TextField(label="Kirim Perintah")
-    
+    cmd = ft.TextField(label="Your command")
 
     page.add(lv)
-    page.add(cmd, ft.ElevatedButton("Kirim", on_click=btn_click))
-    page.add(ft.ElevatedButton("Inbox", on_click=btn_inbox))
+    page.add(cmd, ft.ElevatedButton("Send", on_click=btn_click))
 
 
 if __name__=='__main__':
@@ -47,4 +37,3 @@ if __name__=='__main__':
         ft.app(target=main,view=ft.WEB_BROWSER,port=8550)
     else:
         ft.app(target=main)
-
