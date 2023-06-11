@@ -2,8 +2,8 @@ import socket
 import json
 import os
 
-TARGET_IP = os.getenv("SERVER_IP") or "192.168.1.68"
-TARGET_PORT = os.getenv("SERVER_PORT") or 55555
+TARGET_IP =  "192.168.1.68"
+TARGET_PORT = 55555
 
 class ChatClient:
     def __init__(self):
@@ -105,18 +105,6 @@ class ChatClient:
             return "message sent to {}" . format(usernameto)
         else:
             return "Error, {}" . format(result['message'])
-        
-
-    def send_realm_message(self, realmid, username_to, message):
-        if (self.tokenid==""):
-            return "Error, not authorized"
-        string="sendprivaterealm {} {} {} {}\r\n" . format(self.tokenid, realmid, username_to, message)
-        result = self.sendstring(string)
-        if result['status']=='OK':
-            return "Message sent to realm {}".format(realmid)
-        else:
-            return "Error, {}".format(result['message'])
-        
 
     def send_group_message(self,usernames_to="xxx",message="xxx"):
         if (self.tokenid==""):
@@ -129,6 +117,26 @@ class ChatClient:
         else:
             return "Error, {}" . format(result['message'])
         
+    def inbox(self):
+        if (self.tokenid==""):
+           return "Error, not authorized"
+        string="inbox {} \r\n" . format(self.tokenid)
+        result = self.sendstring(string)
+        if result['status']=='OK':
+            return "{}" . format(json.dumps(result['messages']))
+        else:
+            return "Error, {}" . format(result['message'])
+
+    def send_realm_message(self, realmid, username_to, message):
+        if (self.tokenid==""):
+            return "Error, not authorized"
+        string="sendprivaterealm {} {} {} {}\r\n" . format(self.tokenid, realmid, username_to, message)
+        result = self.sendstring(string)
+        if result['status']=='OK':
+            return "Message sent to realm {}".format(realmid)
+        else:
+            return "Error, {}".format(result['message'])
+        
     def send_group_realm_message(self, realmid, usernames_to, message):
         if self.tokenid=="":
             return "Error, not authorized"
@@ -139,16 +147,6 @@ class ChatClient:
             return "message sent to group {} in realm {}" .format(usernames_to, realmid)
         else:
             return "Error {}".format(result['message'])
-
-    def inbox(self):
-        if (self.tokenid==""):
-           return "Error, not authorized"
-        string="inbox {} \r\n" . format(self.tokenid)
-        result = self.sendstring(string)
-        if result['status']=='OK':
-            return "{}" . format(json.dumps(result['messages']))
-        else:
-            return "Error, {}" . format(result['message'])
 
     def realm_inbox(self, realmid):
         if (self.tokenid==""):
