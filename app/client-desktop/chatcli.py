@@ -2,7 +2,7 @@ import socket
 import json
 import os
 
-TARGET_IP = "127.0.0"
+TARGET_IP = "172.19.214.247"
 TARGET_PORT = 55555
 
 class ChatClient:
@@ -36,11 +36,11 @@ class ChatClient:
                 return self.send_message(usernameto,message)
             
             elif (command=='sendgroup'):
-                usernamesto = j[1].strip()
+                group_usernames = j[1].strip()
                 message=""
                 for w in j[2:]:
                     message="{} {}" . format(message,w)
-                return self.send_group_message(usernamesto,message)
+                return self.send_group_message(group_usernames,message)
             
             elif (command == 'sendrealm'):
                 realm_ID = j[1].strip()
@@ -50,13 +50,13 @@ class ChatClient:
                     message = "{} {}".format(message, w)
                 return self.send_realm_message(realm_ID, username_to, message)
             
-            elif (command=='sendgrouprealm'):
+            elif (command=='sendrealmgroup'):
                 realm_ID = j[1].strip()
-                usernamesto = j[2].strip()
+                group_usernames = j[2].strip()
                 message=""
                 for w in j[3:]:
                     message="{} {}" . format(message,w)
-                return self.send_group_realm_message(realm_ID, usernamesto,message)
+                return self.send_group_realm_message(realm_ID, group_usernames,message)
             
             elif command == 'sendfile':
                 file_path = j[1].strip()
@@ -91,45 +91,33 @@ class ChatClient:
             return { 'status' : 'ERROR', 'message' : 'Failed'}
 
     def login(self,username,password):
-        string="auth {} {} \r\n" . format(username,password)
-        result = self.sendstring(string)
-        if result['status']=='OK':
-            self.tokenid=result['tokenid']
+        command = f"auth {username} {password} \r\n"
+        response = self.sendstring(command)
+        if response['status']=='OK':
+            self.tokenid=response['tokenid']
             return "username {} logged in, token {} " .format(username,self.tokenid)
         else:
-            return "Error, {}" . format(result['message'])
-
-    def add_realm_connect(self, realm_ID, realm_address, realm_port):
-        if (self.tokenid==""):
-            return "Error, Unauthorized Please Login First"
-        string="addrealm {} {} {} \r\n" . format(realm_ID, realm_address, realm_port)
-        result = self.sendstring(string)
-        if result['status']=='OK':
-            return "Realm {} added" . format(realm_ID)
-        else:
-            return "Error, {}" . format(result['message'])
+            return "Error, {}" . format(response['message'])
 
     def send_message(self,usernameto="xxx",message="xxx"):
-        if (self.tokenid==""):
+        if not self.tokenid:
             return "Error, Unauthorized Please Login First"
-        string="send {} {} {} \r\n" . format(self.tokenid,usernameto,message)
-        print(string)
-        result = self.sendstring(string)
-        if result['status']=='OK':
+        command = f"send {self.tokenid} {usernameto} {message} \r\n"
+        response = self.sendstring(command)
+        if response['status']=='OK':
             return "sent to {}" . format(usernameto)
         else:
-            return "Error, {}" . format(result['message'])
+            return "Error, {}" . format(response['message'])
 
     def send_group_message(self,usernames="xxx",message="xxx"):
-        if (self.tokenid==""):
+        if not self.tokenid:
             return "Error, Unauthorized Please Login First "
-        string="sendgroup {} {} {} \r\n" . format(self.tokenid,usernames,message)
-        print(string)
-        result = self.sendstring(string)
-        if result['status']=='OK':
+        command = f"sendgroup {self.tokenid} {usernames} {message} \r\n"
+        response = self.sendstring(command)
+        if response['status']=='OK':
             return "sent to {}" . format(usernames)
         else:
-            return "Error, {}" . format(result['message'])
+            return "Error, {}" . format(response['message'])
 
     def _send_message(self, message):
         self.sock.sendall(message.encode())
@@ -155,46 +143,55 @@ class ChatClient:
         print(f"File '{file_name}' received and saved in '{received_file_path}'")
         
     def inbox(self):
-        if (self.tokenid==""):
+        if not self.tokenid:
            return "Error, Unauthorized Please Login First"
-        string="inbox {} \r\n" . format(self.tokenid)
-        result = self.sendstring(string)
-        if result['status']=='OK':
-            return "{}" . format(json.dumps(result['messages']))
+        command = f"inbox {self.tokenid}\r\n"
+        response = self.sendstring(command)
+        if response['status']=='OK':
+            return "{}" . format(json.dumps(response['messages']))
         else:
-            return "Error, {}" . format(result['message'])
-
-    def send_realm_message(self, realm_ID, username_to, message):
-        if (self.tokenid==""):
+            return "Error, {}" . format(response['message'])
+        
+    def add_realm_connect(self, realm_ID, realm_address, realm_port):
+        if not self.tokenid:
             return "Error, Unauthorized Please Login First"
-        string="sendrealm {} {} {} {}\r\n" . format(self.tokenid, realm_ID, username_to, message)
-        result = self.sendstring(string)
-        if result['status']=='OK':
+        command = f"addrealm {realm_ID} {realm_address} {realm_port} \r\n"
+        response = self.sendstring(command)
+        if response['status']=='OK':
+            return "Realm {} added" . format(realm_ID)
+        else:
+            return "Error, {}" . format(response['message'])
+        
+    def send_realm_message(self, realm_ID, username_to, message):
+        if not self.tokenid:
+            return "Error, Unauthorized Please Login First"
+        command = f"sendrealm {self.tokenid} {realm_ID} {username_to} {message} \r\n"
+        response = self.sendstring(command)
+        if response['status']=='OK':
             return "sent to realm {}".format(realm_ID)
         else:
-            return "Error, {}".format(result['message'])
+            return "Error, {}".format(response['message'])
         
     def send_group_realm_message(self, realm_ID, usernames, message):
-        if self.tokenid=="":
+        if not self.tokenid:
             return "Error, Unauthorized Please Login First"
-        string="sendgrouprealm {} {} {} {} \r\n" . format(self.tokenid, realm_ID, usernames, message)
-        result = self.sendstring(string)
-        if result['status']=='OK':
+        command = f"sendrealmgroup {self.tokenid} {realm_ID} {usernames} {message} \r\n"
+        response = self.sendstring(command)
+        if response['status']=='OK':
             return "sent to group {} in realm {}" .format(usernames, realm_ID)
         else:
-            return "Error {}".format(result['message'])
+            return "Error {}".format(response['message'])
 
     def inbox_realm(self, realm_ID):
-        if (self.tokenid==""):
+        if not self.tokenid:
             return "Error, Unauthorized Please Login First"
-        string="inboxrealm {} {} \r\n" . format(self.tokenid, realm_ID)
-        print("Sending: " + string)
-        result = self.sendstring(string)
-        print("Received: " + str(result))
-        if result['status']=='OK':
-            return "received from realm {}: {}".format(realm_ID, result['messages'])
+        command = f"inboxrealm {self.tokenid} {realm_ID} \r\n"
+        response = self.sendstring(command)
+        print("Received: " + str(response))
+        if response['status']=='OK':
+            return "received from realm {}: {}".format(realm_ID, response['messages'])
         else:
-            return "Error, {}".format(result['message'])
+            return "Error, {}".format(response['message'])
 
 if __name__=="__main__":
     cc = ChatClient()
