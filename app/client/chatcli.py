@@ -38,14 +38,14 @@ class ChatClient:
                 for w in j[2:]:
                     message="{} {}" . format(message,w)
                 return self.send_group_message(usernamesto,message)
-            elif (command == 'sendrealm'):
+            elif (command == 'sendprivaterealm'):
                 realmid = j[1].strip()
                 username_to = j[2].strip()
                 message = ""
                 for w in j[3:]:
                     message = "{} {}".format(message, w)
                 return self.send_realm_message(realmid, username_to, message)
-            elif (command=='sendrealmgroup'):
+            elif (command=='sendgrouprealm'):
                 realmid = j[1].strip()
                 usernamesto = j[2].strip()
                 message=""
@@ -58,7 +58,7 @@ class ChatClient:
                 return
             elif (command=='inbox'):
                 return self.inbox()
-            elif (command == 'realminbox'):
+            elif (command == 'getrealminbox'):
                 realmid = j[1].strip()
                 return self.realm_inbox(realmid)
             else:
@@ -159,7 +159,7 @@ class ChatClient:
     def send_realm_message(self, realmid, username_to, message):
         if (self.tokenid==""):
             return "Error, Unauthorized"
-        string="sendrealm {} {} {} {}\r\n" . format(self.tokenid, realmid, username_to, message)
+        string="sendprivaterealm {} {} {} {}\r\n" . format(self.tokenid, realmid, username_to, message)
         result = self.sendstring(string)
         if result['status']=='OK':
             return "Message sent to realm {}".format(realmid)
@@ -169,7 +169,7 @@ class ChatClient:
     def send_group_realm_message(self, realmid, usernames_to, message):
         if self.tokenid=="":
             return "Error, Unauthorized"
-        string="sendrealmgroup {} {} {} {} \r\n" . format(self.tokenid, realmid, usernames_to, message)
+        string="sendgrouprealm {} {} {} {} \r\n" . format(self.tokenid, realmid, usernames_to, message)
         print(string)
         result = self.sendstring(string)
         if result['status']=='OK':
@@ -180,7 +180,7 @@ class ChatClient:
     def realm_inbox(self, realmid):
         if (self.tokenid==""):
             return "Error, Unauthorized"
-        string="realminbox {} {} \r\n" . format(self.tokenid, realmid)
+        string="getrealminbox {} {} \r\n" . format(self.tokenid, realmid)
         print("Sending: " + string)
         result = self.sendstring(string)
         print("Received: " + str(result))
