@@ -22,6 +22,11 @@ class ChatClient:
                 password=j[2].strip()
                 return self.login(username,password)
             
+            elif (command == 'send_file'):
+                usernameto = j[1]
+                filename = j[2]
+                return self.send_file(usernameto, filename)
+            
             elif (command=='addrealmconnect'):
                 realm_ID = j[1].strip()
                 realm_address = j[2].strip()
@@ -89,6 +94,29 @@ class ChatClient:
         except:
             self.sock.close()
             return { 'status' : 'ERROR', 'message' : 'Failed'}
+        
+    def send_file(self, usernameto, filename):
+        if not self.tokenid:
+            return "Error, not authorized"
+        string = "send_file {} {} {} \r\n".format(self.tokenid, usernameto, filename)
+        self.sock.sendall(string.encode())  # Encode the string into bytes
+
+        try:
+            with open(filename, 'rb') as file:
+                while True:
+                    bytes = file.read(1024)
+                    if not bytes:
+                        result = self.sendstring("DONE")
+                        break
+                    self.sock.sendall(bytes)
+                file.close()
+        except IOError:
+            return "Error, file not found"
+
+        if result['status'] == 'OK':
+            return "file sent to {}".format(usernameto)
+        else:
+            return "Error, {}".format(result['message'])
 
     def login(self,username,password):
         command = f"auth {username} {password} \r\n"

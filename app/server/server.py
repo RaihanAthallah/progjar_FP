@@ -23,7 +23,7 @@ class ProcessTheClient(threading.Thread):
 				if rcv[-2:]=='\r\n':
 					#end of command, proses string
 					logging.warning("data dari client: {}" . format(rcv))
-					hasil = json.dumps(chatserver.proses(rcv))
+					hasil = json.dumps(chatserver.proses(rcv, self.connection))
 					hasil=hasil+"\r\n\r\n"
 					logging.warning("balas ke  client: {}" . format(hasil))
 					self.connection.sendall(hasil.encode())
