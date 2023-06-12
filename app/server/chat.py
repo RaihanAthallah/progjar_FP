@@ -6,6 +6,8 @@ import logging
 from queue import  Queue
 import threading 
 import socket
+from datetime import datetime
+from os.path import join, dirname, realpath
 
 class RealmCommunicationThread(threading.Thread):
     def __init__(self, chats, realm_address_to, realm_port_to):
@@ -64,13 +66,14 @@ class Chat:
                 logging.warning("AUTH: auth {} {}" . format(username,password))
                 return self.autentikasi_user(username,password)       
 
-            elif (command=='send_file'):
-                sessionid = j[1]
-                usernameto = j[2]
-                filename = j[3]
+            elif (command=='sendfile'):
+                sessionid = j[1].strip()
+                usernameto = j[2].strip()
+                filepath = j[3].strip()
+                encoded_file = j[4].strip()
                 usernamefrom = self.sessions[sessionid]['username']
-                print ("send_file from {} to {}" . format(usernamefrom, usernameto))
-                return self.send_file(sessionid, usernamefrom, usernameto, filename, connection) 
+                logging.warning("SENDFILE: session {} send file from {} to {}" . format(sessionid, usernamefrom, usernameto))
+                return self.send_file(sessionid, usernamefrom, usernameto, filepath, encoded_file)
             
             elif (command=='send'):
                 sessionid = j[1].strip()
@@ -209,54 +212,51 @@ class Chat:
             inqueue_receiver[username_from]=Queue()
             inqueue_receiver[username_from].put(message)
         return {'status': 'OK', 'message': 'Message Sent'}
-    
-    def send_file(self, sessionid, username_from, username_dest, filename, connection):
-        if sessionid not in self.sessions:
-            return {'status': 'ERROR', 'message': 'Session Tidak Ditemukan'}
-        
-        s_fr = self.get_user(username_from)
-        s_to = self.get_user(username_dest)
 
-        if s_fr == False or s_to == False:
-            return {'status': 'ERROR', 'message': 'User Tidak Ditemukan'}
-        
-        try:
-            if not os.path.exists(username_dest):
-                os.makedirs(username_dest)
+    def send_file(self, sessionid, username_from, username_dest, filepath ,encoded_file):
+            if sessionid not in self.sessions:
+                return {'status': 'ERROR', 'message': 'Session Tidak Ditemukan'}
             
-            with open(os.path.join(username_dest, filename), 'wb') as file:
-                while True:
-                    data = connection.recv(1024)
-                    print(data)
-                    if data[-4:] == 'DONE':
-                        data = data[:-4]
-                        file.write(data)
-                        break
-                    file.write(data)
-                
-                file.close()
-        
-        except IOError:
-            raise
+            s_fr = self.get_user(username_from)
+            s_to = self.get_user(username_dest)
 
-        message = {'msg_from': s_fr['nama'], 'msg_to': s_to['nama'], 'msg': 'sent/received {}'.format(filename)}
-        outqueue_sender = s_fr['outgoing']
-        inqueue_receiver = s_to['incoming']
-        
-        try:
-            outqueue_sender[username_from].put(message)
-        except KeyError:
-            outqueue_sender[username_from] = Queue()
-            outqueue_sender[username_from].put(message)
-        
-        try:
-            inqueue_receiver[username_from].put(message)
-        except KeyError:
-            inqueue_receiver[username_from] = Queue()
-            inqueue_receiver[username_from].put(message)
+            if s_fr is False or s_to is False:
+                return {'status': 'ERROR', 'message': 'User Tidak Ditemukan'}
 
-        return {'status': 'OK', 'message': 'File sent'}
+            filename = os.path.basename(filepath)
+            message = {
+                'msg_from': s_fr['nama'],
+                'msg_to': s_to['nama'],
+                'file_name': filename,
+                'file_content': encoded_file
+            }
 
+            outqueue_sender = s_fr['outgoing']
+            inqueue_receiver = s_to['incoming']
+            try:
+                outqueue_sender[username_from].put(json.dumps(message))
+            except KeyError:
+                outqueue_sender[username_from] = Queue()
+                outqueue_sender[username_from].put(json.dumps(message))
+            try:
+                inqueue_receiver[username_from].put(json.dumps(message))
+            except KeyError:
+                inqueue_receiver[username_from] = Queue()
+                inqueue_receiver[username_from].put(json.dumps(message))
+            
+            folder_name = f"{username_dest}"
+            folder_path = join(dirname(realpath(__file__)), folder_name)
+            os.makedirs(folder_path, exist_ok=True)
+            file_destination = os.path.join(folder_path, filename)
+            if 'b' in encoded_file[0]:
+                msg = encoded_file[2:-1]
+
+                with open(file_destination, "wb") as fh:
+                    fh.write(base64.b64decode(msg))
+            else:
+                tail = encoded_file.split()
+            
+            return {'status': 'OK', 'message': 'File Sent'}
           
     def send_group_message(self, sessionid, username_from, usernames_dest, message):
         if (sessionid not in self.sessions):

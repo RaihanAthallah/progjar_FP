@@ -1,8 +1,10 @@
 import socket
 import json
 import os
+import base64
 
-TARGET_IP = "172.19.214.247"
+
+TARGET_IP = "127.0.0.1"
 TARGET_PORT = 55555
 
 class ChatClient:
@@ -22,10 +24,10 @@ class ChatClient:
                 password=j[2].strip()
                 return self.login(username,password)
             
-            elif (command == 'send_file'):
-                usernameto = j[1]
-                filename = j[2]
-                return self.send_file(usernameto, filename)
+            elif (command=='sendfile'):
+                usernameto = j[1].strip()
+                filepath = j[2].strip()
+                return self.send_file(usernameto,filepath)
             
             elif (command=='addrealmconnect'):
                 realm_ID = j[1].strip()
@@ -63,11 +65,6 @@ class ChatClient:
                     message="{} {}" . format(message,w)
                 return self.send_group_realm_message(realm_ID, group_usernames,message)
             
-            elif command == 'sendfile':
-                file_path = j[1].strip()
-                self._send_file(file_path)
-                return
-            
             elif (command=='inbox'):
                 return self.inbox()
             
@@ -95,28 +92,23 @@ class ChatClient:
             self.sock.close()
             return { 'status' : 'ERROR', 'message' : 'Failed'}
         
-    def send_file(self, usernameto, filename):
-        if not self.tokenid:
+    def send_file(self, usernameto="xxx", filepath="xxx"):
+        if (self.tokenid==""):
             return "Error, not authorized"
-        string = "send_file {} {} {} \r\n".format(self.tokenid, usernameto, filename)
-        self.sock.sendall(string.encode())  # Encode the string into bytes
 
-        try:
-            with open(filename, 'rb') as file:
-                while True:
-                    bytes = file.read(1024)
-                    if not bytes:
-                        result = self.sendstring("DONE")
-                        break
-                    self.sock.sendall(bytes)
-                file.close()
-        except IOError:
-            return "Error, file not found"
+        if not os.path.exists(filepath):
+            return {'status': 'ERROR', 'message': 'File not found'}
+        
+        with open(filepath, 'rb') as file:
+            file_content = file.read()
+            encoded_content = base64.b64encode(file_content)  
+        string="sendfile {} {} {} {}\r\n" . format(self.tokenid,usernameto,filepath,encoded_content)
 
-        if result['status'] == 'OK':
-            return "file sent to {}".format(usernameto)
+        result = self.sendstring(string)
+        if result['status']=='OK':
+            return "file sent to {}" . format(usernameto)
         else:
-            return "Error, {}".format(result['message'])
+            return "Error, {}" . format(result['message'])
 
     def login(self,username,password):
         command = f"auth {username} {password} \r\n"
