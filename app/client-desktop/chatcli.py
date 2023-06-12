@@ -29,6 +29,11 @@ class ChatClient:
                 filepath = j[2].strip()
                 return self.send_file(usernameto,filepath)
             
+            elif (command=='sendgroupfile'):
+                usernamesto = j[1].strip()
+                filepath = j[2].strip()
+                return self.send_group_file(usernamesto,filepath)
+            
             elif (command=='addrealmconnect'):
                 realm_ID = j[1].strip()
                 realm_address = j[2].strip()
@@ -109,6 +114,26 @@ class ChatClient:
             return "file sent to {}" . format(usernameto)
         else:
             return "Error, {}" . format(result['message'])
+        
+    def send_group_file(self, usernames_to="xxx", filepath="xxx"):
+        if (self.tokenid==""):
+            return "Error, not authorized"
+        
+        if not os.path.exists(filepath):
+            return {'status': 'ERROR', 'message': 'File not found'}
+        
+        with open(filepath, 'rb') as file:
+            file_content = file.read()
+            encoded_content = base64.b64encode(file_content)  # Decode byte-string to UTF-8 string
+
+        string="sendgroupfile {} {} {} {}\r\n" . format(self.tokenid,usernames_to,filepath, encoded_content)
+
+        result = self.sendstring(string)
+        if result['status']=='OK':
+            return "file sent to {}" . format(usernames_to)
+        else:
+            return "Error, {}" . format(result['message'])
+
 
     def login(self,username,password):
         command = f"auth {username} {password} \r\n"
