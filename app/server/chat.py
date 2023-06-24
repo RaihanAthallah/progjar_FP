@@ -75,6 +75,15 @@ class Chat:
                 logging.warning("SENDFILE: session {} send file from {} to {}" . format(sessionid, usernamefrom, usernameto))
                 return self.send_file(sessionid, usernamefrom, usernameto, filepath, encoded_file)
             
+            elif (command=='sendgroupfile'):
+                sessionid = j[1].strip()
+                usernamesto = j[2].strip().split(',')
+                filepath = j[3].strip()
+                encoded_file = j[4].strip()
+                usernamefrom = self.sessions[sessionid]['username']
+                logging.warning("SENDGROUPFILE: session {} send file from {} to {}" . format(sessionid, usernamefrom, usernamesto))
+                return self.send_group_file(sessionid, usernamefrom, usernamesto, filepath, encoded_file)
+            
             elif (command=='send'):
                 sessionid = j[1].strip()
                 usernameto = j[2].strip()
@@ -257,6 +266,52 @@ class Chat:
                 tail = encoded_file.split()
             
             return {'status': 'OK', 'message': 'File Sent'}
+    
+    def send_group_file(self, sessionid, username_from, usernames_dest, filepath, encoded_file):
+        if (sessionid not in self.sessions):
+            return {'status': 'ERROR', 'message': 'Session Tidak Ditemukan'}
+        s_fr = self.get_user(username_from)
+        if s_fr is False:
+            return {'status': 'ERROR', 'message': 'User Tidak Ditemukan'}
+
+        filename = os.path.basename(filepath)
+        for username_dest in usernames_dest:
+            s_to = self.get_user(username_dest)
+            if s_to is False:
+                continue
+            message = {
+                'msg_from': s_fr['nama'],
+                'msg_to': s_to['nama'],
+                'file_name': filename,
+                'file_content': encoded_file
+            }
+
+            outqueue_sender = s_fr['outgoing']
+            inqueue_receiver = s_to['incoming']
+            try:
+                outqueue_sender[username_from].put(json.dumps(message))
+            except KeyError:
+                outqueue_sender[username_from] = Queue()
+                outqueue_sender[username_from].put(json.dumps(message))
+            try:
+                inqueue_receiver[username_from].put(json.dumps(message))
+            except KeyError:
+                inqueue_receiver[username_from] = Queue()
+                inqueue_receiver[username_from].put(json.dumps(message))
+        
+            folder_name = f"{username_dest}"
+            folder_path = join(dirname(realpath(__file__)), folder_name)
+            os.makedirs(folder_path, exist_ok=True)
+            file_destination = os.path.join(folder_path, filename)
+            if 'b' in encoded_file[0]:
+                msg = encoded_file[2:-1]
+
+                with open(file_destination, "wb") as fh:
+                    fh.write(base64.b64decode(msg))
+            else:
+                tail = encoded_file.split()
+        
+        return {'status': 'OK', 'message': 'File Sent'}
           
     def send_group_message(self, sessionid, username_from, usernames_dest, message):
         if (sessionid not in self.sessions):
