@@ -4,7 +4,7 @@ import os
 import base64
 
 
-TARGET_IP = "127.0.0.1"
+TARGET_IP = "localhost"
 TARGET_PORT = 55555
 
 class ChatClient:

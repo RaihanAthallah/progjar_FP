@@ -4,8 +4,8 @@ from chatcli import *
 import flet as ft
 
 
-TARGET_IP = os.getenv("SERVER_IP") or "127.0.0"
-TARGET_PORT = os.getenv("SERVER_PORT") or "8889"
+TARGET_IP = os.getenv("SERVER_IP") or "localhost"
+TARGET_PORT = os.getenv("SERVER_PORT") or "55555"
 ON_WEB = os.getenv("ONWEB") or "0"
 
 
